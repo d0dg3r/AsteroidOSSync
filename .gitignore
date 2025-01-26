@@ -1,5 +1,7 @@
 # Built application files
 /build
+/app/build
+/app/release
 
 # Local configuration file (sdk path, etc)
 local.properties
@@ -14,3 +16,4 @@ local.properties
 .idea/
 *.iml
 app/*.iml
+,vscode/
