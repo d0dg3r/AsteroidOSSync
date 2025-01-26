@@ -65,7 +65,8 @@
         <activity
             android:name=".MainActivity"
             android:screenOrientation="portrait"
-            android:configChanges="uiMode"/>
+            android:configChanges="orientation|screenSize|keyboardHidden"
+            android:launchMode="singleTop"/>
 
         <service
             android:name=".services.NLService"
