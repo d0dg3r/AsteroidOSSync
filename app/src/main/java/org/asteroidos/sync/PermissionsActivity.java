@@ -207,6 +207,10 @@ public class PermissionsActivity extends MaterialIntroActivity {
         @Nullable
         @Override
         public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
+            if (mCtx == null) {
+                mCtx = inflater.getContext();
+            }
+            
             Bundle bundle = new Bundle();
             bundle.putInt("background_color", R.color.colorintroslide4);
             bundle.putInt("buttons_color", R.color.colorintroslide4button);

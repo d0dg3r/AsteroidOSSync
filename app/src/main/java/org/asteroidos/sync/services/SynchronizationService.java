@@ -35,6 +35,7 @@ import android.os.Looper;
 import android.os.Message;
 import android.os.Messenger;
 import android.os.RemoteException;
+import android.content.pm.ServiceInfo;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
@@ -86,6 +87,7 @@ public class SynchronizationService extends Service implements IAsteroidDevice, 
     private Messenger replyTo;
     private SharedPreferences mPrefs;
     private AsteroidBleManager mBleMngr;
+    private Notification notification;
 
     final void handleConnect() {
         if (mBleMngr == null) {
@@ -248,19 +250,75 @@ public class SynchronizationService extends Service implements IAsteroidDevice, 
 
     @Override
     public void onCreate() {
+        super.onCreate();
+        
+        mNM = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
         bleServices = new HashMap<>();
         nonBleServices = new ArrayList<>();
 
-        mNM = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
-
+        // Create notification channel first
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            NotificationChannel notificationChannel = new NotificationChannel(NOTIFICATION_CHANNEL_ID, "Synchronization Service", NotificationManager.IMPORTANCE_LOW);
+            NotificationChannel notificationChannel = new NotificationChannel(
+                NOTIFICATION_CHANNEL_ID,
+                "Synchronization Service",
+                NotificationManager.IMPORTANCE_LOW);
             notificationChannel.setDescription("Connection status");
             notificationChannel.setVibrationPattern(new long[]{0L});
             notificationChannel.setShowBadge(false);
             mNM.createNotificationChannel(notificationChannel);
         }
 
+        // Initialize services
+        if (nonBleServices.isEmpty()) {
+            nonBleServices.add(new SilentModeService(getApplicationContext()));
+        }
+
+        if (bleServices.isEmpty()) {
+            // Register Services
+            registerBleService(new MediaService(getApplicationContext(), this));
+            registerBleService(new NotificationService(getApplicationContext(), this));
+            registerBleService(new WeatherService(getApplicationContext(), this));
+            registerBleService(new ScreenshotService(getApplicationContext(), this));
+            registerBleService(new TimeService(getApplicationContext(), this));
+        }
+
+        // Create initial notification before starting foreground
+        Intent intent = new Intent(this, MainActivity.class);
+        PendingIntent contentIntent = PendingIntent.getActivity(this, 0,
+                intent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+
+        notification = new NotificationCompat.Builder(this, NOTIFICATION_CHANNEL_ID)
+                .setSmallIcon(R.drawable.ic_stat_name)
+                .setContentTitle(getText(R.string.app_name))
+                .setContentText(getString(R.string.disconnected))
+                .setContentIntent(contentIntent)
+                .setOngoing(true)
+                .setPriority(NotificationCompat.PRIORITY_LOW)
+                .setForegroundServiceBehavior(NotificationCompat.FOREGROUND_SERVICE_IMMEDIATE)
+                .setShowWhen(false)
+                .build();
+
+        // Start foreground with proper type based on Android version
+        if (Build.VERSION.SDK_INT >= 34) { // Android 14 (UPSIDE_DOWN_CAKE)
+            try {
+                int flags = 0;
+                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                    flags = ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE | 
+                           ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC;
+                }
+                if (flags != 0) {
+                    startForeground(NOTIFICATION, notification, flags);
+                } else {
+                    startForeground(NOTIFICATION, notification);
+                }
+            } catch (Exception e) {
+                // Fallback if the service types are not available
+                startForeground(NOTIFICATION, notification);
+                Log.e(TAG, "Failed to start foreground service with type flags", e);
+            }
+        } else {
+            startForeground(NOTIFICATION, notification);
+        }
 
         mPrefs = getSharedPreferences(MainActivity.PREFS_NAME, Context.MODE_PRIVATE);
         String defaultDevMacAddr = mPrefs.getString(MainActivity.PREFS_DEFAULT_MAC_ADDR, "");
@@ -275,29 +333,21 @@ public class SynchronizationService extends Service implements IAsteroidDevice, 
             mDevice = BluetoothAdapter.getDefaultAdapter().getRemoteDevice(defaultDevMacAddr);
         }
 
-        if (nonBleServices.isEmpty())
-            nonBleServices.add(new SilentModeService(getApplicationContext()));
-
-        if (bleServices.isEmpty()) {
-            // Register Services
-            registerBleService(new MediaService(getApplicationContext(), this));
-            registerBleService(new NotificationService(getApplicationContext(), this));
-            registerBleService(new WeatherService(getApplicationContext(), this));
-            registerBleService(new ScreenshotService(getApplicationContext(), this));
-            registerBleService(new TimeService(getApplicationContext(), this));
-        }
-
         handleConnect();
-        updateNotification();
+        updateNotification(); // Update notification with latest state
     }
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
+        // Handle process recreation
+        if (intent == null) {
+            stopSelf();
+            return START_NOT_STICKY;
+        }
         return START_STICKY;
     }
 
     private void updateNotification() {
-        handleUpdateConnectionStatus();
         String status = getString(R.string.disconnected);
         if (mDevice != null) {
             try {
@@ -310,23 +360,23 @@ public class SynchronizationService extends Service implements IAsteroidDevice, 
             }
         }
 
+        Intent intent = new Intent(this, MainActivity.class);
+        PendingIntent contentIntent = PendingIntent.getActivity(this, 0,
+                intent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+
+        notification = new NotificationCompat.Builder(this, NOTIFICATION_CHANNEL_ID)
+                .setSmallIcon(R.drawable.ic_stat_name)
+                .setContentTitle(getText(R.string.app_name))
+                .setContentText(status)
+                .setContentIntent(contentIntent)
+                .setOngoing(true)
+                .setPriority(NotificationCompat.PRIORITY_LOW)
+                .setForegroundServiceBehavior(NotificationCompat.FOREGROUND_SERVICE_IMMEDIATE)
+                .setShowWhen(false)
+                .build();
+
         if (mDevice != null) {
-            Intent intent = new Intent(this, MainActivity.class);
-            PendingIntent contentIntent = PendingIntent.getActivity(this, 0,
-                    intent, PendingIntent.FLAG_UPDATE_CURRENT + PendingIntent.FLAG_IMMUTABLE);
-
-            Notification notification = new NotificationCompat.Builder(this, NOTIFICATION_CHANNEL_ID)
-                    .setSmallIcon(R.drawable.ic_stat_name)
-                    .setContentTitle(getText(R.string.app_name))
-                    .setContentText(status)
-                    .setContentIntent(contentIntent)
-                    .setOngoing(true)
-                    .setPriority(Notification.PRIORITY_MIN)
-                    .setShowWhen(false)
-                    .build();
-
             mNM.notify(NOTIFICATION, notification);
-            startForeground(NOTIFICATION, notification);
         }
     }
 
