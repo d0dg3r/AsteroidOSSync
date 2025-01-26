@@ -49,11 +49,9 @@ public class NLService extends NotificationListenerService {
     private Map<String, String> iconFromPackage;
     private volatile boolean listenerConnected = false;
 
-    static class NotificationReceiver extends BroadcastReceiver {
-        private final WeakReference<NLService> serviceRef;
-
-        public NotificationReceiver(NLService service) {
-            this.serviceRef = new WeakReference<>(service);
+    public static class NotificationReceiver extends BroadcastReceiver {
+        public NotificationReceiver() {
+            // Required empty public constructor
         }
 
         @Override
