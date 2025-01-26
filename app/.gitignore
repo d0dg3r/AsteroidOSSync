@@ -1,1 +1,4 @@
+# Built application files
 /build
+/app/build
+/app/release
