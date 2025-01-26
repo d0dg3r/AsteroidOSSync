@@ -87,6 +87,7 @@ public class SynchronizationService extends Service implements IAsteroidDevice, 
     private Messenger replyTo;
     private SharedPreferences mPrefs;
     private AsteroidBleManager mBleMngr;
+    private Notification notification;
 
     final void handleConnect() {
         if (mBleMngr == null) {
@@ -249,12 +250,12 @@ public class SynchronizationService extends Service implements IAsteroidDevice, 
 
     @Override
     public void onCreate() {
+        super.onCreate();
+        mNM = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
         bleServices = new HashMap<>();
         nonBleServices = new ArrayList<>();
 
-        mNM = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             NotificationChannel notificationChannel = new NotificationChannel(
                 NOTIFICATION_CHANNEL_ID,
                 "Synchronization Service",
@@ -294,13 +295,16 @@ public class SynchronizationService extends Service implements IAsteroidDevice, 
         updateNotification();
         
         // Start foreground with proper type
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
             startForeground(NOTIFICATION, notification, 
                 ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE | 
                 ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC);
         } else {
             startForeground(NOTIFICATION, notification);
         }
+
+        // Initialize services
+        initializeServices();
     }
 
     @Override
@@ -309,7 +313,6 @@ public class SynchronizationService extends Service implements IAsteroidDevice, 
     }
 
     private void updateNotification() {
-        handleUpdateConnectionStatus();
         String status = getString(R.string.disconnected);
         if (mDevice != null) {
             try {
@@ -322,22 +325,22 @@ public class SynchronizationService extends Service implements IAsteroidDevice, 
             }
         }
 
+        Intent intent = new Intent(this, MainActivity.class);
+        PendingIntent contentIntent = PendingIntent.getActivity(this, 0,
+                intent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+
+        notification = new NotificationCompat.Builder(this, NOTIFICATION_CHANNEL_ID)
+                .setSmallIcon(R.drawable.ic_stat_name)
+                .setContentTitle(getText(R.string.app_name))
+                .setContentText(status)
+                .setContentIntent(contentIntent)
+                .setOngoing(true)
+                .setPriority(NotificationCompat.PRIORITY_LOW)
+                .setForegroundServiceBehavior(NotificationCompat.FOREGROUND_SERVICE_IMMEDIATE)
+                .setShowWhen(false)
+                .build();
+
         if (mDevice != null) {
-            Intent intent = new Intent(this, MainActivity.class);
-            PendingIntent contentIntent = PendingIntent.getActivity(this, 0,
-                    intent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
-
-            notification = new NotificationCompat.Builder(this, NOTIFICATION_CHANNEL_ID)
-                    .setSmallIcon(R.drawable.ic_stat_name)
-                    .setContentTitle(getText(R.string.app_name))
-                    .setContentText(status)
-                    .setContentIntent(contentIntent)
-                    .setOngoing(true)
-                    .setPriority(NotificationCompat.PRIORITY_LOW)
-                    .setForegroundServiceBehavior(NotificationCompat.FOREGROUND_SERVICE_IMMEDIATE)
-                    .setShowWhen(false)
-                    .build();
-
             mNM.notify(NOTIFICATION, notification);
         }
     }
