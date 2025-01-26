@@ -252,13 +252,11 @@ public class SynchronizationService extends Service implements IAsteroidDevice, 
     public void onCreate() {
         super.onCreate();
         
-        // Initialize service before notification to prevent ANR
-        initializeServices();
-        
         mNM = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
         bleServices = new HashMap<>();
         nonBleServices = new ArrayList<>();
 
+        // Create notification channel first
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             NotificationChannel notificationChannel = new NotificationChannel(
                 NOTIFICATION_CHANNEL_ID,
@@ -270,6 +268,34 @@ public class SynchronizationService extends Service implements IAsteroidDevice, 
             mNM.createNotificationChannel(notificationChannel);
         }
 
+        // Create initial notification before starting foreground
+        Intent intent = new Intent(this, MainActivity.class);
+        PendingIntent contentIntent = PendingIntent.getActivity(this, 0,
+                intent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+
+        notification = new NotificationCompat.Builder(this, NOTIFICATION_CHANNEL_ID)
+                .setSmallIcon(R.drawable.ic_stat_name)
+                .setContentTitle(getText(R.string.app_name))
+                .setContentText(getString(R.string.disconnected))
+                .setContentIntent(contentIntent)
+                .setOngoing(true)
+                .setPriority(NotificationCompat.PRIORITY_LOW)
+                .setForegroundServiceBehavior(NotificationCompat.FOREGROUND_SERVICE_IMMEDIATE)
+                .setShowWhen(false)
+                .build();
+
+        // Start foreground with proper type immediately after creating notification
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            startForeground(NOTIFICATION, notification, 
+                ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE | 
+                ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC);
+        } else {
+            startForeground(NOTIFICATION, notification);
+        }
+        
+        // Initialize remaining service components
+        initializeServices();
+        
         mPrefs = getSharedPreferences(MainActivity.PREFS_NAME, Context.MODE_PRIVATE);
         String defaultDevMacAddr = mPrefs.getString(MainActivity.PREFS_DEFAULT_MAC_ADDR, "");
         String defaultLocalName = mPrefs.getString(MainActivity.PREFS_DEFAULT_LOC_NAME, "");
@@ -296,16 +322,7 @@ public class SynchronizationService extends Service implements IAsteroidDevice, 
         }
 
         handleConnect();
-        updateNotification();
-        
-        // Start foreground with proper type
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-            startForeground(NOTIFICATION, notification, 
-                ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE | 
-                ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC);
-        } else {
-            startForeground(NOTIFICATION, notification);
-        }
+        updateNotification(); // Update notification with latest state
     }
 
     @Override
