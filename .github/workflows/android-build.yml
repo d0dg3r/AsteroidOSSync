@@ -24,10 +24,10 @@ jobs:
       - name: Decode Keystore
         env:
           ENCODED_KEYSTORE: ${{ secrets.KEYSTORE }}
-        # run: |
-        #   if [ -n "$ENCODED_KEYSTORE" ]; then
-        #     echo "$ENCODED_KEYSTORE" | base64 --decode > app/release-key.jks
-        #   fi
+        run: |
+          if [ -n "$ENCODED_KEYSTORE" ]; then
+            cat "$ENCODED_KEYSTORE" | base64 --decode > app/release-key.jks
+          fi
 
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
