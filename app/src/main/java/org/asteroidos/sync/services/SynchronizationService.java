@@ -268,6 +268,20 @@ public class SynchronizationService extends Service implements IAsteroidDevice, 
             mNM.createNotificationChannel(notificationChannel);
         }
 
+        // Initialize services
+        if (nonBleServices.isEmpty()) {
+            nonBleServices.add(new SilentModeService(getApplicationContext()));
+        }
+
+        if (bleServices.isEmpty()) {
+            // Register Services
+            registerBleService(new MediaService(getApplicationContext(), this));
+            registerBleService(new NotificationService(getApplicationContext(), this));
+            registerBleService(new WeatherService(getApplicationContext(), this));
+            registerBleService(new ScreenshotService(getApplicationContext(), this));
+            registerBleService(new TimeService(getApplicationContext(), this));
+        }
+
         // Create initial notification before starting foreground
         Intent intent = new Intent(this, MainActivity.class);
         PendingIntent contentIntent = PendingIntent.getActivity(this, 0,
@@ -284,18 +298,20 @@ public class SynchronizationService extends Service implements IAsteroidDevice, 
                 .setShowWhen(false)
                 .build();
 
-        // Start foreground with proper type immediately after creating notification
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-            startForeground(NOTIFICATION, notification, 
-                ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE | 
-                ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC);
+        // Start foreground with proper type based on Android version
+        if (Build.VERSION.SDK_INT >= 34) { // Android 14 (UPSIDE_DOWN_CAKE)
+            try {
+                startForeground(NOTIFICATION, notification, 
+                    ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE | 
+                    ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC);
+            } catch (Exception e) {
+                // Fallback if the service types are not available
+                startForeground(NOTIFICATION, notification);
+            }
         } else {
             startForeground(NOTIFICATION, notification);
         }
-        
-        // Initialize remaining service components
-        initializeServices();
-        
+
         mPrefs = getSharedPreferences(MainActivity.PREFS_NAME, Context.MODE_PRIVATE);
         String defaultDevMacAddr = mPrefs.getString(MainActivity.PREFS_DEFAULT_MAC_ADDR, "");
         String defaultLocalName = mPrefs.getString(MainActivity.PREFS_DEFAULT_LOC_NAME, "");
@@ -307,18 +323,6 @@ public class SynchronizationService extends Service implements IAsteroidDevice, 
 
         if (!(defaultDevMacAddr.equals(""))) {
             mDevice = BluetoothAdapter.getDefaultAdapter().getRemoteDevice(defaultDevMacAddr);
-        }
-
-        if (nonBleServices.isEmpty())
-            nonBleServices.add(new SilentModeService(getApplicationContext()));
-
-        if (bleServices.isEmpty()) {
-            // Register Services
-            registerBleService(new MediaService(getApplicationContext(), this));
-            registerBleService(new NotificationService(getApplicationContext(), this));
-            registerBleService(new WeatherService(getApplicationContext(), this));
-            registerBleService(new ScreenshotService(getApplicationContext(), this));
-            registerBleService(new TimeService(getApplicationContext(), this));
         }
 
         handleConnect();
