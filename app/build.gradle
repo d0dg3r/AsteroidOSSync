@@ -3,9 +3,10 @@ plugins {
 }
 
 android {
-    // ...existing code...
+    namespace 'org.asteroidos.sync'
     compileSdkVersion 34
     defaultConfig {
+        applicationId "org.asteroidos.sync"
         // ...existing code...
         targetSdkVersion 34
         // ...existing code...
