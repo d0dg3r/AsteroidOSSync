@@ -22,12 +22,11 @@ jobs:
           cache: gradle
 
       - name: Decode Keystore
-        env:
-          ENCODED_KEYSTORE: ${{ secrets.KEYSTORE }}
+        if: github.event_name == 'release' || github.ref == 'refs/heads/master'
         run: |
-          if [ -n "$ENCODED_KEYSTORE" ]; then
-            cat "$ENCODED_KEYSTORE" | base64 --decode > app/release-key.jks
-          fi
+          echo "${{ secrets.KEYSTORE }}" > keystore.b64
+          base64 -d keystore.b64 > app/release-key.jks
+          rm keystore.b64
 
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
@@ -43,10 +42,23 @@ jobs:
           SIGNING_STORE_PASSWORD: ${{ secrets.SIGNING_STORE_PASSWORD }}
         run: ./gradlew assembleRelease
 
-      - name: Upload APKs
+      - name: Upload Debug APK
         uses: actions/upload-artifact@v3
         with:
-          name: apks
-          path: |
-            app/build/outputs/apk/debug/*.apk
-            app/build/outputs/apk/release/*.apk
+          name: app-debug
+          path: app/build/outputs/apk/debug/*.apk
+
+      - name: Upload Release APK
+        if: github.event_name == 'release' || github.ref == 'refs/heads/master'
+        uses: actions/upload-artifact@v3
+        with:
+          name: app-release
+          path: app/build/outputs/apk/release/*.apk
+
+      - name: Upload Release to GitHub Release
+        if: github.event_name == 'release'
+        uses: softprops/action-gh-release@v1
+        with:
+          files: app/build/outputs/apk/release/*.apk
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
