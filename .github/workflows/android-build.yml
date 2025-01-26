@@ -22,21 +22,31 @@ jobs:
           cache: gradle
 
       - name: Decode Keystore
+        env:
+          ENCODED_KEYSTORE: ${{ secrets.KEYSTORE }}
         run: |
-          echo ${{ secrets.KEYSTORE }} | base64 -d > app/release-key.jks
+          if [ -n "$ENCODED_KEYSTORE" ]; then
+            echo "$ENCODED_KEYSTORE" | base64 --decode > app/release-key.jks
+          fi
 
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
+      - name: Build Debug APK
+        run: ./gradlew assembleDebug
+
       - name: Build Release APK
+        if: github.event_name == 'release' || github.ref == 'refs/heads/master'
         env:
           SIGNING_KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
           SIGNING_KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
           SIGNING_STORE_PASSWORD: ${{ secrets.SIGNING_STORE_PASSWORD }}
         run: ./gradlew assembleRelease
 
-      - name: Upload Release APK
+      - name: Upload APKs
         uses: actions/upload-artifact@v3
         with:
-          name: app-release
-          path: app/build/outputs/apk/release/app-release.apk
+          name: apks
+          path: |
+            app/build/outputs/apk/debug/*.apk
+            app/build/outputs/apk/release/*.apk

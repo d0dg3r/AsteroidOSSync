@@ -11,13 +11,9 @@ local.properties
 
 # Signing files
 .signing/
-
-# # Keystore files
-# *.jks
-# *.keystore
-
-# # Keystore properties
-# keystore.properties
+*.jks
+*.keystore
+keystore-base64.txt
 
 # User-specific configurations
 .idea/

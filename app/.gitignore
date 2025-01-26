@@ -2,3 +2,7 @@
 /build
 /app/build
 /app/release
+
+*.jks
+*.keystore
+keystore-base64.txt
