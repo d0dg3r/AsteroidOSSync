@@ -87,13 +87,18 @@ public class PermissionsActivity extends MaterialIntroActivity {
                 ArrayList<String> permissions = new ArrayList<>();
                 permissions.add(Manifest.permission.ACCESS_FINE_LOCATION);
 
-                if (android.os.Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                     permissions.add(Manifest.permission.BLUETOOTH_CONNECT);
                     permissions.add(Manifest.permission.BLUETOOTH_SCAN);
                 }
 
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU){
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    permissions.add(Manifest.permission.POST_NOTIFICATIONS);
                     permissions.add(Manifest.permission.NEARBY_WIFI_DEVICES);
+                }
+
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                    // Add any Android 14 specific permissions here
                 }
 
                 SlideFragmentBuilder localizationFragmentBuilder = new SlideFragmentBuilder()

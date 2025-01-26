@@ -50,6 +50,7 @@ import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.app.AppCompatDelegate;
 import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
 import androidx.fragment.app.FragmentTransaction;
@@ -411,7 +412,7 @@ public class MainActivity extends AppCompatActivity implements DeviceListFragmen
             handler.postDelayed(() -> {
                 try {
                     mScanner.stopScan(scanCallback);
-                    mScanner.startScan(mFilters, mSettings, scanCallback);
+                    startScanning();
                 } catch (IllegalStateException e) {
                     e.printStackTrace();
                 }
@@ -448,6 +449,23 @@ public class MainActivity extends AppCompatActivity implements DeviceListFragmen
         finish();
         overridePendingTransition(0, 0);
         startActivity(getIntent());
+    }
+
+    private void startScanning() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            if (ContextCompat.checkSelfPermission(this, 
+                Manifest.permission.BLUETOOTH_SCAN) != PackageManager.PERMISSION_GRANTED) {
+                return;
+            }
+        }
+
+        BluetoothLeScannerCompat scanner = BluetoothLeScannerCompat.getScanner();
+        ScanSettings settings = new ScanSettings.Builder()
+            .setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY)
+            .setLegacy(false)
+            .build();
+
+        scanner.startScan(mFilters, settings, scanCallback);
     }
 
     static private class SynchronizationHandler extends Handler {
