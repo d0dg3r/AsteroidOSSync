@@ -37,21 +37,51 @@ import androidx.core.app.NotificationCompat;
 
 import org.asteroidos.sync.utils.NotificationParser;
 
+import java.lang.ref.WeakReference;
 import java.util.Arrays;
 import java.util.Hashtable;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 public class NLService extends NotificationListenerService {
-    private NotificationReceiver notificationReceiver;
+    private static NotificationReceiver notificationReceiver;
     private boolean isReceiverRegistered = false;
     private Map<String, String> iconFromPackage;
     private volatile boolean listenerConnected = false;
 
+    static class NotificationReceiver extends BroadcastReceiver {
+        private final WeakReference<NLService> serviceRef;
+
+        public NotificationReceiver(NLService service) {
+            this.serviceRef = new WeakReference<>(service);
+        }
+
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            NLService service = serviceRef.get();
+            if (service == null) return;
+
+            try {
+                if (intent.getAction() == null) return;
+
+                if (intent.getAction().equals("org.asteroidos.sync.NOTIFICATION_LISTENER")) {
+                    String event = intent.getStringExtra("event");
+                    if (event == null) return;
+
+                    if (event.equals("refresh")) {
+                        service.handleRefresh();
+                    }
+                }
+            } catch (Exception e) {
+                Log.e("NLService", "Error handling notification: " + e.getMessage());
+            }
+        }
+    }
+
     @Override
     public void onCreate() {
         super.onCreate();
-        notificationReceiver = new NotificationReceiver();
+        notificationReceiver = new NotificationReceiver(this);
         iconFromPackage = new Hashtable<>();
         iconFromPackage.put("code.name.monkey.retromusic", "ios-musical-notes");
         iconFromPackage.put("com.android.chrome", "logo-chrome");
@@ -232,26 +262,6 @@ public class NLService extends NotificationListenerService {
     @Override
     public void onListenerConnected() {
         listenerConnected = true;
-    }
-
-    class NotificationReceiver extends BroadcastReceiver {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            try {
-                if (intent.getAction() == null) return;
-
-                if (intent.getAction().equals("org.asteroidos.sync.NOTIFICATION_LISTENER")) {
-                    String event = intent.getStringExtra("event");
-                    if (event == null) return;
-
-                    if (event.equals("refresh")) {
-                        handleRefresh();
-                    }
-                }
-            } catch (Exception e) {
-                Log.e("NLService", "Error handling notification: " + e.getMessage());
-            }
-        }
     }
 
     private void handleRefresh() {
