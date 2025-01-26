@@ -11,6 +11,9 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
     steps:
       - uses: actions/checkout@v4
 
@@ -55,7 +58,7 @@ jobs:
           name: app-release
           path: app/build/outputs/apk/release/*.apk
 
-      - name: Upload Release to GitHub Release
+      - name: Upload Release Assets
         if: github.event_name == 'release'
         uses: softprops/action-gh-release@v1
         with:
