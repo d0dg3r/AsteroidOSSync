@@ -35,7 +35,7 @@ import android.os.Looper;
 import android.os.Message;
 import android.os.Messenger;
 import android.os.RemoteException;
-import android.os.ServiceInfo;
+import android.content.pm.ServiceInfo;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
@@ -301,12 +301,20 @@ public class SynchronizationService extends Service implements IAsteroidDevice, 
         // Start foreground with proper type based on Android version
         if (Build.VERSION.SDK_INT >= 34) { // Android 14 (UPSIDE_DOWN_CAKE)
             try {
-                startForeground(NOTIFICATION, notification, 
-                    ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE | 
-                    ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC);
+                int flags = 0;
+                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                    flags = ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE | 
+                           ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC;
+                }
+                if (flags != 0) {
+                    startForeground(NOTIFICATION, notification, flags);
+                } else {
+                    startForeground(NOTIFICATION, notification);
+                }
             } catch (Exception e) {
                 // Fallback if the service types are not available
                 startForeground(NOTIFICATION, notification);
+                Log.e(TAG, "Failed to start foreground service with type flags", e);
             }
         } else {
             startForeground(NOTIFICATION, notification);
