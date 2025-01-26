@@ -48,21 +48,27 @@ jobs:
       - name: Upload Debug APK
         uses: actions/upload-artifact@v3
         with:
-          name: app-debug
+          name: AsteroidOSSync_d0dger-debug
           path: app/build/outputs/apk/debug/*.apk
 
       - name: Upload Release APK
         if: github.event_name == 'release' || github.ref == 'refs/heads/master'
         uses: actions/upload-artifact@v3
         with:
-          name: app-release
+          name: AsteroidOSSync_d0dger-release
           path: app/build/outputs/apk/release/*.apk
+
+      - name: Rename APKs
+        if: github.event_name == 'release'
+        run: |
+          mkdir -p artifacts
+          cp app/build/outputs/apk/release/*.apk artifacts/AsteroidOSSync_d0dger.apk
 
       - name: Upload Release Assets
         if: github.event_name == 'release'
         uses: softprops/action-gh-release@v1
         with:
-          files: app/build/outputs/apk/release/*.apk
+          files: artifacts/AsteroidOSSync_d0dger.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
