@@ -2,7 +2,8 @@ name: Android CI
 
 on:
   push:
-    branches: [ "master" ]
+    branches:
+      - '**'  # This matches all branches
   pull_request:
     branches: [ "master" ]
   release:
@@ -24,6 +25,14 @@ jobs:
           distribution: 'adopt'
           cache: gradle
 
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Update Gradle Properties
+        run: |
+          echo "org.gradle.jvmargs=-Xmx4g -XX:MaxMetaspaceSize=2g" >> gradle.properties
+          echo "android.defaults.buildfeatures.buildconfig=true" >> gradle.properties
+
       - name: Decode Keystore
         if: github.event_name == 'release' || github.ref == 'refs/heads/master'
         run: |
@@ -35,7 +44,7 @@ jobs:
         run: chmod +x gradlew
 
       - name: Build Debug APK
-        run: ./gradlew assembleDebug
+        run: ./gradlew assembleDebug --stacktrace --info
 
       - name: Build Release APK
         if: github.event_name == 'release' || github.ref == 'refs/heads/master'
@@ -43,32 +52,26 @@ jobs:
           SIGNING_KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
           SIGNING_KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
           SIGNING_STORE_PASSWORD: ${{ secrets.SIGNING_STORE_PASSWORD }}
-        run: ./gradlew assembleRelease
+        run: ./gradlew assembleRelease --stacktrace --info
 
       - name: Upload Debug APK
         uses: actions/upload-artifact@v3
         with:
-          name: AsteroidOSSync_d0dger-debug
+          name: app-debug
           path: app/build/outputs/apk/debug/*.apk
 
       - name: Upload Release APK
         if: github.event_name == 'release' || github.ref == 'refs/heads/master'
         uses: actions/upload-artifact@v3
         with:
-          name: AsteroidOSSync_d0dger-release
+          name: app-release
           path: app/build/outputs/apk/release/*.apk
 
-      - name: Rename APKs
-        if: github.event_name == 'release'
-        run: |
-          mkdir -p artifacts
-          cp app/build/outputs/apk/release/*.apk artifacts/AsteroidOSSync_d0dger.apk
-
-      - name: Upload Release Assets
+      - name: Upload Release to GitHub Release
         if: github.event_name == 'release'
         uses: softprops/action-gh-release@v1
         with:
-          files: artifacts/AsteroidOSSync_d0dger.apk
+          files: app/build/outputs/apk/release/*.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
