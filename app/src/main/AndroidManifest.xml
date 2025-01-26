@@ -65,7 +65,9 @@
         <activity
             android:name=".MainActivity"
             android:screenOrientation="portrait"
-            android:configChanges="uiMode"/>
+            android:configChanges="uiMode"
+            android:exported="true">
+        </activity>
 
         <service
             android:name=".services.NLService"

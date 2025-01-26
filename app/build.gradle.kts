@@ -3,15 +3,15 @@ plugins {
 }
 
 android {
-    compileSdk = 33
-    buildToolsVersion = "30.0.3"
+    compileSdk = 34
+    buildToolsVersion = "34.0.0"
 
     defaultConfig {
         applicationId = "org.asteroidos.sync"
         minSdk = 24
-        targetSdk = 33
-        versionCode = 29
-        versionName = "0.29"
+        targetSdk = 34
+        versionCode = 30
+        versionName = "0.30"
     }
     buildTypes {
         named("release") {
@@ -75,10 +75,10 @@ repositories {
 dependencies {
     implementation(fileTree(mapOf("dir" to "libs", "include" to listOf("*.jar"))))
     testImplementation("junit:junit:4.13.2")
-    implementation("androidx.appcompat:appcompat:1.6.1")
+    implementation("androidx.appcompat:appcompat:1.7.0-alpha03")
     implementation("androidx.legacy:legacy-support-v4:1.0.0")
     implementation("androidx.cardview:cardview:1.0.0")
-    implementation("com.google.android.material:material:1.9.0")
+    implementation("com.google.android.material:material:1.11.0")
     implementation("com.github.MagneFire:EasyWeather:1.3")
     implementation("com.google.code.gson:gson:2.10.1")
     implementation("org.osmdroid:osmdroid-android:6.1.16")
