@@ -50,8 +50,14 @@ public class NLService extends NotificationListenerService {
     private volatile boolean listenerConnected = false;
 
     public static class NotificationReceiver extends BroadcastReceiver {
+        private static WeakReference<NLService> serviceRef;
+
         public NotificationReceiver() {
             // Required empty public constructor
+        }
+
+        public NotificationReceiver(NLService service) {
+            serviceRef = new WeakReference<>(service);
         }
 
         @Override
