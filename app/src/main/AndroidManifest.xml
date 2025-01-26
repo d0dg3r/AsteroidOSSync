@@ -106,6 +106,13 @@
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/provider_paths" />
         </provider>
+
+        <receiver android:name=".services.NLService$NotificationReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="org.asteroidos.sync.NOTIFICATION_LISTENER"/>
+            </intent-filter>
+        </receiver>
     </application>
 
 </manifest>
