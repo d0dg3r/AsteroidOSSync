@@ -251,6 +251,10 @@ public class SynchronizationService extends Service implements IAsteroidDevice, 
     @Override
     public void onCreate() {
         super.onCreate();
+        
+        // Initialize service before notification to prevent ANR
+        initializeServices();
+        
         mNM = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
         bleServices = new HashMap<>();
         nonBleServices = new ArrayList<>();
@@ -302,13 +306,15 @@ public class SynchronizationService extends Service implements IAsteroidDevice, 
         } else {
             startForeground(NOTIFICATION, notification);
         }
-
-        // Initialize services
-        initializeServices();
     }
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
+        // Handle process recreation
+        if (intent == null) {
+            stopSelf();
+            return START_NOT_STICKY;
+        }
         return START_STICKY;
     }
 
