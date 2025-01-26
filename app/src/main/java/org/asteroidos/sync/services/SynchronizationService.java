@@ -35,6 +35,7 @@ import android.os.Looper;
 import android.os.Message;
 import android.os.Messenger;
 import android.os.RemoteException;
+import android.os.ServiceInfo;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
@@ -253,14 +254,16 @@ public class SynchronizationService extends Service implements IAsteroidDevice, 
 
         mNM = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            NotificationChannel notificationChannel = new NotificationChannel(NOTIFICATION_CHANNEL_ID, "Synchronization Service", NotificationManager.IMPORTANCE_LOW);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            NotificationChannel notificationChannel = new NotificationChannel(
+                NOTIFICATION_CHANNEL_ID,
+                "Synchronization Service",
+                NotificationManager.IMPORTANCE_LOW);
             notificationChannel.setDescription("Connection status");
             notificationChannel.setVibrationPattern(new long[]{0L});
             notificationChannel.setShowBadge(false);
             mNM.createNotificationChannel(notificationChannel);
         }
-
 
         mPrefs = getSharedPreferences(MainActivity.PREFS_NAME, Context.MODE_PRIVATE);
         String defaultDevMacAddr = mPrefs.getString(MainActivity.PREFS_DEFAULT_MAC_ADDR, "");
@@ -289,6 +292,15 @@ public class SynchronizationService extends Service implements IAsteroidDevice, 
 
         handleConnect();
         updateNotification();
+        
+        // Start foreground with proper type
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            startForeground(NOTIFICATION, notification, 
+                ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE | 
+                ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC);
+        } else {
+            startForeground(NOTIFICATION, notification);
+        }
     }
 
     @Override
@@ -313,20 +325,20 @@ public class SynchronizationService extends Service implements IAsteroidDevice, 
         if (mDevice != null) {
             Intent intent = new Intent(this, MainActivity.class);
             PendingIntent contentIntent = PendingIntent.getActivity(this, 0,
-                    intent, PendingIntent.FLAG_UPDATE_CURRENT + PendingIntent.FLAG_IMMUTABLE);
+                    intent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
 
-            Notification notification = new NotificationCompat.Builder(this, NOTIFICATION_CHANNEL_ID)
+            notification = new NotificationCompat.Builder(this, NOTIFICATION_CHANNEL_ID)
                     .setSmallIcon(R.drawable.ic_stat_name)
                     .setContentTitle(getText(R.string.app_name))
                     .setContentText(status)
                     .setContentIntent(contentIntent)
                     .setOngoing(true)
-                    .setPriority(Notification.PRIORITY_MIN)
+                    .setPriority(NotificationCompat.PRIORITY_LOW)
+                    .setForegroundServiceBehavior(NotificationCompat.FOREGROUND_SERVICE_IMMEDIATE)
                     .setShowWhen(false)
                     .build();
 
             mNM.notify(NOTIFICATION, notification);
-            startForeground(NOTIFICATION, notification);
         }
     }
 

@@ -26,6 +26,9 @@
     <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES"
         tools:ignore="QueryAllPackagesPermission" />
 
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
+
     <uses-feature
         android:name="android.hardware.bluetooth_le"
         android:required="true" />
@@ -89,6 +92,7 @@
             android:name=".services.SynchronizationService"
             android:enabled="true"
             android:exported="false"
+            android:foregroundServiceType="connectedDevice|dataSync"
             android:label="SynchronizationService" />
 
         <receiver android:name=".services.AutostartService"
