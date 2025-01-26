@@ -77,4 +77,7 @@
     <string name="location_disabled_title">Location disabled</string>
     <string name="intro_slide6_title">Phone Notifications</string>
     <string name="intro_slide6_subtitle">To show the current connection state of the watch.</string>
+    <string name="bluetooth_permission_title">Bluetooth Permission</string>
+    <string name="bluetooth_permission_message">This app needs Bluetooth permissions to connect to your AsteroidOS watch.</string>
+    <string name="bluetooth_permission_denied">Bluetooth permissions are required to use this app. Please grant them in Settings.</string>
 </resources>
