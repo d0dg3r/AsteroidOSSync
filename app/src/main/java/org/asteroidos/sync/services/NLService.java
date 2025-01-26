@@ -28,64 +28,31 @@ import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Handler;
-import android.os.Looper;
 import android.service.notification.NotificationListenerService;
 import android.service.notification.StatusBarNotification;
-import android.util.Log;
 
 import androidx.core.app.NotificationCompat;
 
 import org.asteroidos.sync.utils.NotificationParser;
 
-import java.lang.ref.WeakReference;
 import java.util.Arrays;
 import java.util.Hashtable;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 public class NLService extends NotificationListenerService {
-    private static NotificationReceiver notificationReceiver;
-    private boolean isReceiverRegistered = false;
+    private NLServiceReceiver nlServiceReceiver;
     private Map<String, String> iconFromPackage;
     private volatile boolean listenerConnected = false;
-
-    public static class NotificationReceiver extends BroadcastReceiver {
-        private static WeakReference<NLService> serviceRef;
-
-        public NotificationReceiver() {
-            // Required empty public constructor
-        }
-
-        public NotificationReceiver(NLService service) {
-            serviceRef = new WeakReference<>(service);
-        }
-
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            NLService service = serviceRef.get();
-            if (service == null) return;
-
-            try {
-                if (intent.getAction() == null) return;
-
-                if (intent.getAction().equals("org.asteroidos.sync.NOTIFICATION_LISTENER")) {
-                    String event = intent.getStringExtra("event");
-                    if (event == null) return;
-
-                    if (event.equals("refresh")) {
-                        service.handleRefresh();
-                    }
-                }
-            } catch (Exception e) {
-                Log.e("NLService", "Error handling notification: " + e.getMessage());
-            }
-        }
-    }
 
     @Override
     public void onCreate() {
         super.onCreate();
-        notificationReceiver = new NotificationReceiver(this);
+        nlServiceReceiver = new NLServiceReceiver();
+        IntentFilter filter = new IntentFilter();
+        filter.addAction("org.asteroidos.sync.NOTIFICATION_LISTENER_SERVICE");
+        registerReceiver(nlServiceReceiver, filter);
+
         iconFromPackage = new Hashtable<>();
         iconFromPackage.put("code.name.monkey.retromusic", "ios-musical-notes");
         iconFromPackage.put("com.android.chrome", "logo-chrome");
@@ -182,23 +149,9 @@ public class NLService extends NotificationListenerService {
     }
 
     @Override
-    public int onStartCommand(Intent intent, int flags, int startId) {
-        if (!isReceiverRegistered) {
-            IntentFilter filter = new IntentFilter();
-            filter.addAction("org.asteroidos.sync.NOTIFICATION_LISTENER");
-            registerReceiver(notificationReceiver, filter);
-            isReceiverRegistered = true;
-        }
-        return super.onStartCommand(intent, flags, startId);
-    }
-
-    @Override
     public void onDestroy() {
-        if (isReceiverRegistered) {
-            unregisterReceiver(notificationReceiver);
-            isReceiverRegistered = false;
-        }
         super.onDestroy();
+        unregisterReceiver(nlServiceReceiver);
         iconFromPackage.clear();
     }
 
@@ -268,19 +221,26 @@ public class NLService extends NotificationListenerService {
         listenerConnected = true;
     }
 
-    private void handleRefresh() {
-        Handler handler = new Handler(Looper.getMainLooper());
-        handler.postDelayed(() -> {
-            try {
-                StatusBarNotification[] activeNotifications = getActiveNotifications();
-                if (activeNotifications != null) {
-                    for (StatusBarNotification notif : activeNotifications) {
-                        onNotificationPosted(notif);
+    @SuppressWarnings("StatementWithEmptyBody")
+    class NLServiceReceiver extends BroadcastReceiver {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            if (intent.getStringExtra("command").equals("refresh")) {
+                Handler handler = new Handler();
+                handler.postDelayed(() -> {
+                    while (!listenerConnected) {
+                        // Sleep the spin
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                            Thread.onSpinWait();
+                        }else {
+                            // Will not delay here, as we can cause the entire UI to freeze
+                        }
                     }
-                }
-            } catch (Exception e) {
-                Log.e("NLService", "Error refreshing notifications: " + e.getMessage());
+                    StatusBarNotification[] notifs = getActiveNotifications();
+                    for (StatusBarNotification notif : notifs)
+                        onNotificationPosted(notif);
+                }, 500);
             }
-        }, 500);
+        }
     }
 }

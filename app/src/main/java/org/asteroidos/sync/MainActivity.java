@@ -134,12 +134,6 @@ public class MainActivity extends AppCompatActivity implements DeviceListFragmen
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        if (savedInstanceState != null) {
-            // Restore state
-            mStatus = (IAsteroidDevice.ConnectionState) savedInstanceState
-                .getSerializable("connectionState");
-        }
-
         mScanner = BluetoothLeScannerCompat.getScanner();
 
         mPrefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
@@ -185,21 +179,10 @@ public class MainActivity extends AppCompatActivity implements DeviceListFragmen
     }
 
     @Override
-    protected void onSaveInstanceState(Bundle outState) {
-        super.onSaveInstanceState(outState);
-        // Save connection state
-        outState.putSerializable("connectionState", mStatus);
-    }
-
-    @Override
     public void onDestroy() {
         super.onDestroy();
-        if (mStatus != IAsteroidDevice.ConnectionState.STATUS_CONNECTED) {
+        if (mStatus != IAsteroidDevice.ConnectionState.STATUS_CONNECTED)
             stopService(mSyncServiceIntent);
-        }
-        if (mScanner != null) {
-            mScanner.stopScan(scanCallback);
-        }
     }
 
     /* Fragments switching */
@@ -439,20 +422,13 @@ public class MainActivity extends AppCompatActivity implements DeviceListFragmen
     @Override
     protected void onResume() {
         super.onResume();
-        if (mSyncServiceIntent != null) {
-            bindService(mSyncServiceIntent, mConnection, Context.BIND_AUTO_CREATE);
-        }
+        bindService(mSyncServiceIntent, mConnection, Context.BIND_AUTO_CREATE);
     }
 
     @Override
     protected void onPause() {
         super.onPause();
-        if (mScanner != null) {
-            mScanner.stopScan(scanCallback);
-        }
-        if (mConnection != null) {
-            unbindService(mConnection);
-        }
+        unbindService(mConnection);
     }
 
     @Override

@@ -65,8 +65,7 @@
         <activity
             android:name=".MainActivity"
             android:screenOrientation="portrait"
-            android:configChanges="orientation|screenSize|keyboardHidden"
-            android:launchMode="singleTop"/>
+            android:configChanges="uiMode"/>
 
         <service
             android:name=".services.NLService"
@@ -106,13 +105,6 @@
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/provider_paths" />
         </provider>
-
-        <receiver android:name=".services.NLService$NotificationReceiver"
-            android:exported="false">
-            <intent-filter>
-                <action android:name="org.asteroidos.sync.NOTIFICATION_LISTENER"/>
-            </intent-filter>
-        </receiver>
     </application>
 
 </manifest>
