@@ -51,7 +51,13 @@ public class NLService extends NotificationListenerService {
         nlServiceReceiver = new NLServiceReceiver();
         IntentFilter filter = new IntentFilter();
         filter.addAction("org.asteroidos.sync.NOTIFICATION_LISTENER_SERVICE");
-        registerReceiver(nlServiceReceiver, filter);
+        
+        // Add export flags for Android 14 compatibility
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            registerReceiver(nlServiceReceiver, filter, Context.RECEIVER_NOT_EXPORTED);
+        } else {
+            registerReceiver(nlServiceReceiver, filter);
+        }
 
         iconFromPackage = new Hashtable<>();
         iconFromPackage.put("code.name.monkey.retromusic", "ios-musical-notes");
@@ -151,7 +157,11 @@ public class NLService extends NotificationListenerService {
     @Override
     public void onDestroy() {
         super.onDestroy();
-        unregisterReceiver(nlServiceReceiver);
+        try {
+            unregisterReceiver(nlServiceReceiver);
+        } catch (IllegalArgumentException e) {
+            // Receiver not registered
+        }
         iconFromPackage.clear();
     }
 

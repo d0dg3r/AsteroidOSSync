@@ -26,17 +26,32 @@
     <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES"
         tools:ignore="QueryAllPackagesPermission" />
 
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
+
     <uses-feature
         android:name="android.hardware.bluetooth_le"
         android:required="true" />
 
+    <queries>
+        <package android:name="org.asteroidos.sync" />
+        <intent>
+            <action android:name="android.intent.action.MAIN" />
+        </intent>
+    </queries>
+
     <application
+        android:name=".AsteroidSyncApplication"
         android:allowBackup="true"
         android:fullBackupContent="@xml/backup_descriptor"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/AppTheme">
+        android:theme="@style/AppTheme"
+        android:enableOnBackInvokedCallback="true"
+        android:requestLegacyExternalStorage="true"
+        android:preserveLegacyExternalStorage="true">
 
         <activity
             android:name=".PermissionsActivity"
@@ -89,6 +104,7 @@
             android:name=".services.SynchronizationService"
             android:enabled="true"
             android:exported="false"
+            android:foregroundServiceType="connectedDevice|dataSync"
             android:label="SynchronizationService" />
 
         <receiver android:name=".services.AutostartService"
